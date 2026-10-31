@@ -1,0 +1,736 @@
+import React, { useState, useRef } from 'react';
+import { FaSearch, FaCertificate, FaUser, FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaDownload, FaPrint, FaUserShield } from 'react-icons/fa';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import './CertificateVerification.css';
+
+const CertificateVerification = () => {
+  const [username, setUsername] = useState('');
+  const [certificateNumber, setCertificateNumber] = useState('');
+  const [verificationResult, setVerificationResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const certificateRef = useRef(null);
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+
+    if (!username.trim() || !certificateNumber.trim()) {
+      alert('Please enter both username and certificate number');
+      return;
+    }
+
+    setIsLoading(true);
+    setVerificationResult(null);
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/certificates/verify?username=${encodeURIComponent(username)}&certificateNumber=${encodeURIComponent(certificateNumber)}`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ 
+          message: 'Verification failed' 
+        }));
+        throw new Error(errorData.message || 'Verification failed');
+      }
+
+      const data = await response.json();
+      
+      setVerificationResult({
+        isValid: true,
+        holderName: data.certificate.holderName || username,
+        certificateNumber: data.certificate.certificateNumber,
+        courseName: data.certificate.courseName || "OSHEQ Training",
+        issueDate: data.certificate.date,
+        expiryDate: "12/12/2025",
+        pdfUrl: `http://localhost:5000${data.certificate.pdfUrl}`,
+        qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+          `Certificate Number: ${data.certificate.certificateNumber}\nUser: ${username}`
+        )}`,
+        user: {
+          name: username,
+          email: `${username.toLowerCase()}@example.com`,
+          joinDate: "01/01/2023"
+        }
+      });
+
+    } catch (err) {
+      console.error('Verification error:', err);
+      setVerificationResult({
+        isValid: false,
+        certificateNumber,
+        message: err.message
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (verificationResult?.pdfUrl) {
+      // Direct download if PDF exists
+      const link = document.createElement('a');
+      link.href = verificationResult.pdfUrl;
+      link.download = `${verificationResult.certificateNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    // Fallback to generating PDF from HTML
+    if (!certificateRef.current) return;
+
+    html2canvas(certificateRef.current).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('landscape');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${verificationResult.certificateNumber}.pdf`);
+    });
+  };
+
+  const handlePrint = () => {
+    if (verificationResult?.pdfUrl) {
+      window.open(verificationResult.pdfUrl, '_blank');
+      return;
+    }
+
+    if (!certificateRef.current) return;
+
+    html2canvas(certificateRef.current).then(canvas => {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Certificate</title>
+            <style>
+              body { margin: 0; padding: 0; }
+              img { max-width: 100%; height: auto; }
+            </style>
+          </head>
+          <body>
+            <img src="${canvas.toDataURL('image/png')}" />
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  window.close();
+                }, 500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    });
+  };
+
+  return (
+    <div className="certificate-verification-container">
+      <div className="verification-hero">
+        <div className="hero-overlay"></div>
+        <div className="hero-content">
+          <FaUserShield className="hero-icon" />
+          <h1>Certificate Verification</h1>
+          <p>Verify training certificates with your credentials</p>
+        </div>
+      </div>
+
+      <div className="verification-body">
+        <div className="verification-card">
+          <div className="search-section">
+            <h2><FaSearch className="section-icon" /> Verify Certificate</h2>
+            <form onSubmit={handleVerify}>
+              <div className="input-group">
+                <label htmlFor="username">Your Username</label>
+                <div className="input-with-icon">
+                  <FaUser className="input-icon" />
+                  <input
+                    type="text"
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label htmlFor="certificateNumber">Certificate Number</label>
+                <div className="input-with-icon">
+                  <FaCertificate className="input-icon" />
+                  <input
+                    type="text"
+                    id="certificateNumber"
+                    value={certificateNumber}
+                    onChange={(e) => setCertificateNumber(e.target.value)}
+                    placeholder="Enter certificate number (e.g. OSHEQ-12345)"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button type="submit" disabled={isLoading} className="verify-btn">
+                {isLoading ? (
+                  <span className="loading-spinner"></span>
+                ) : (
+                  <>
+                    <FaSearch className="btn-icon" />
+                    Verify Certificate
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {verificationResult && (
+            <div className="result-section">
+              <div className="result-header">
+                {verificationResult.isValid ? (
+                  <>
+                    <FaCheckCircle className="status-icon valid" />
+                    <h3>Certificate Verified Successfully</h3>
+                  </>
+                ) : (
+                  <>
+                    <FaTimesCircle className="status-icon invalid" />
+                    <h3>Certificate Verification Failed</h3>
+                  </>
+                )}
+                <span className="verified-by">Verified by {username}</span>
+              </div>
+
+              {verificationResult.isValid ? (
+                <>
+                  <div className="certificate-display">
+                    <div className="certificate-image-container" ref={certificateRef}>
+                      {verificationResult.pdfUrl ? (
+                        <iframe 
+                          src={verificationResult.pdfUrl} 
+                          title="Certificate PDF"
+                          className="pdf-viewer"
+                        />
+                      ) : (
+                        <div className="certificate-template">
+                          <h3>{verificationResult.courseName}</h3>
+                          <p>This certifies that</p>
+                          <h2>{verificationResult.holderName}</h2>
+                          <p>has successfully completed the training</p>
+                          <p>Certificate Number: {verificationResult.certificateNumber}</p>
+                          <p>Issued on: {verificationResult.issueDate}</p>
+                          <img src={verificationResult.qrCode} alt="QR Code" className="certificate-qr" />
+                        </div>
+                      )}
+                      <div className="certificate-overlay">
+                        <button className="action-btn" onClick={handleDownload}>
+                          <FaDownload /> Download
+                        </button>
+                        <button className="action-btn" onClick={handlePrint}>
+                          <FaPrint /> Print
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="certificate-details">
+                      <div className="detail-row">
+                        <FaUser className="detail-icon" />
+                        <div>
+                          <label>Certificate Holder</label>
+                          <p>{verificationResult.holderName}</p>
+                        </div>
+                      </div>
+
+                      <div className="detail-row">
+                        <FaCertificate className="detail-icon" />
+                        <div>
+                          <label>Certificate Number</label>
+                          <p>{verificationResult.certificateNumber}</p>
+                        </div>
+                      </div>
+
+                      <div className="detail-row">
+                        <FaCertificate className="detail-icon" />
+                        <div>
+                          <label>Course Name</label>
+                          <p>{verificationResult.courseName}</p>
+                        </div>
+                      </div>
+
+                      <div className="detail-row">
+                        <FaCalendarAlt className="detail-icon" />
+                        <div>
+                          <label>Issue Date</label>
+                          <p>{verificationResult.issueDate}</p>
+                        </div>
+                      </div>
+
+                      <div className="detail-row">
+                        <FaCalendarAlt className="detail-icon" />
+                        <div>
+                          <label>Expiry Date</label>
+                          <p>{verificationResult.expiryDate}</p>
+                        </div>
+                      </div>
+
+                      <div className="user-details">
+                        <h4>User Information</h4>
+                        <p>Name: {verificationResult.user.name}</p>
+                        <p>Email: {verificationResult.user.email}</p>
+                        <p>Member Since: {verificationResult.user.joinDate}</p>
+                      </div>
+
+                      <div className="qr-code">
+                        <img src={verificationResult.qrCode} alt="Verification QR Code" />
+                        <p>Scan to verify this certificate</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="invalid-notice">
+                  <p>
+                    The certificate with number <strong>{verificationResult.certificateNumber}</strong> could not be verified.
+                    {verificationResult.message && <span> Reason: {verificationResult.message}</span>}
+                  </p>
+                  <p>Please check the details and try again, or contact our support team for assistance.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CertificateVerification;
+
+/* CertificateVerification.css */
+
+/* Base Styles */
+.certificate-verification-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  /* max-width: 1200px; */
+  margin: 0 auto;
+
+}
+
+/* Hero Section */
+.verification-hero {
+  position: relative;
+  height: 300px;
+  background: url('https://images.unsplash.com/photo-1581578731548-c64695cc6952?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80') no-repeat center center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(78, 84, 200, 0.85) 0%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 20px;
+  max-width: 800px;
+}
+
+.hero-icon {
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+}
+
+.verification-hero h1 {
+  font-size: 2.8rem;
+  margin-bottom: 15px;
+  font-weight: 700;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.verification-hero p {
+  font-size: 1.3rem;
+  opacity: 0.9;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Verification Body */
+.verification-body {
+  padding: 50px 30px;
+  background: #f8f9fa;
+}
+
+.verification-card {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.verification-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+}
+
+.search-section {
+  padding: 40px;
+  border-bottom: 1px solid #eee;
+}
+
+.search-section h2 {
+  color: #2c3e50;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  font-size: 1.8rem;
+  position: relative;
+}
+
+.search-section h2::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(to right, #4e54c8, #8f94fb);
+}
+
+.section-icon {
+  margin-right: 15px;
+  color: #4e54c8;
+}
+
+.input-group {
+  margin-bottom: 25px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.input-with-icon input {
+  width: 100%;
+  padding: 14px 15px 14px 45px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input-with-icon input:focus {
+  outline: none;
+  border-color: #8f94fb;
+  box-shadow: 0 0 0 3px rgba(143, 148, 251, 0.2);
+}
+
+.verify-btn {
+  background: #003366;
+  color: white;
+  border: none;
+  padding: 15px 25px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.verify-btn:hover {
+  background: #003366;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(78, 84, 200, 0.3);
+}
+
+.verify-btn:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Results Section */
+.result-section {
+  padding: 40px;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  gap: 15px;
+}
+
+.status-icon {
+  font-size: 2.2rem;
+}
+
+.status-icon.valid {
+  color: #28a745;
+}
+
+.status-icon.invalid {
+  color: #dc3545;
+}
+
+.result-header h3 {
+  font-size: 1.6rem;
+  margin-right: auto;
+  color: #2c3e50;
+}
+
+.verified-by {
+  font-size: 0.9rem;
+  color: #666;
+  background: #f8f9fa;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+/* Certificate Display */
+.certificate-display {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.certificate-image-container {
+  flex: 1;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 350px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.certificate-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.certificate-image-container:hover .certificate-image {
+  transform: scale(1.05);
+}
+
+.certificate-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.action-btn {
+  background: rgba(255,255,255,0.9);
+  color: #2c3e50;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.action-btn:hover {
+  background: white;
+  transform: translateY(-3px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.certificate-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 15px;
+}
+
+.detail-icon {
+  font-size: 1.3rem;
+  color: #4e54c8;
+  margin-top: 3px;
+}
+
+.detail-row label {
+  font-size: 0.95rem;
+  color: #666;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.detail-row p {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.qr-code {
+  margin-top: auto;
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  align-self: flex-start;
+}
+
+.qr-code img {
+  width: 130px;
+  height: 130px;
+  margin-bottom: 15px;
+}
+
+.qr-code p {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+/* Invalid Notice */
+.invalid-notice {
+  background: #fff3f3;
+  padding: 20px;
+  border-radius: 8px;
+  color: #dc3545;
+  font-size: 1rem;
+  line-height: 1.6;
+  border-left: 4px solid #dc3545;
+}
+
+/* Footer */
+.verification-footer {
+  text-align: center;
+  padding: 25px;
+  background: #2c3e50;
+  color: white;
+  font-size: 0.95rem;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .certificate-display {
+    flex-direction: column;
+  }
+  
+  .certificate-image-container {
+    min-height: 250px;
+  }
+  
+  .qr-code {
+    margin-top: 30px;
+    align-self: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .verification-body {
+    padding: 30px 20px;
+  }
+  
+  .search-section {
+    padding: 30px;
+  }
+  
+  .result-section {
+    padding: 30px;
+  }
+  
+  .verification-hero h1 {
+    font-size: 2.3rem;
+  }
+  
+  .verification-hero p {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .verification-hero {
+    height: 250px;
+  }
+  
+  .verification-hero h1 {
+    font-size: 2rem;
+  }
+  
+  .search-section h2 {
+    font-size: 1.5rem;
+  }
+  
+  .result-header h3 {
+    font-size: 1.3rem;
+  }
+  
+  .certificate-overlay {
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+  }
+  
+  .action-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

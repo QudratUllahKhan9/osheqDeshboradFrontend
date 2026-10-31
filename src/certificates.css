@@ -1,0 +1,154 @@
+/* ================= Certificates page (merged with AcademyPro theme) ================= */
+
+/* ---- fonts (original PDF wale) ---- */
+@font-face {
+  font-family: "Garamond Cert";
+  src: url("./assets/fonts/EBGaramond.ttf") format("truetype");
+  font-weight: 400 800;
+}
+@font-face {
+  font-family: "Montserrat Cert";
+  src: url("./assets/fonts/Montserrat.ttf") format("truetype");
+  font-weight: 100 900;
+}
+
+/* ---- sidebar NEW badge ---- */
+.menu-badge {
+  margin-left: auto;
+  background: var(--orange, #f59e0b);
+  color: #4a3000;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+/* ---- layout ---- */
+.cert-grid {
+  display: grid;
+  grid-template-columns: 430px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1200px) {
+  .cert-grid { grid-template-columns: 1fr; }
+}
+
+.cert-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cert-hint { color: var(--muted); font-size: 11px; margin-top: 4px; }
+.cert-generate-btn { width: 100%; padding: 13px; font-size: 12px; margin-top: 6px; }
+
+.cert-error {
+  background: #fdecec;
+  color: #a02020;
+  border: 1px solid #f2c4c4;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+/* ---- result card ---- */
+.cert-result {
+  margin-top: 16px;
+  border: 1.5px solid #bfe0cd;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cert-result-head {
+  background: var(--green-light);
+  color: var(--green-dark);
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 10px 14px;
+}
+.cert-result-body { display: flex; gap: 14px; padding: 14px; align-items: center; }
+.cert-result-qr { width: 84px; height: 84px; border: 1px solid var(--border); border-radius: 6px; }
+.cert-result-info { flex: 1; font-size: 13px; }
+.cert-result-links { display: flex; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+.cert-result-links .download-btn { text-decoration: none; display: inline-block; }
+.cert-ghost-btn { background: white; color: var(--green); border: 1.5px solid var(--green); }
+
+/* ---- certificate preview (794x1123 = A4 @96dpi, original PDF ke exact positions) ---- */
+.cert-preview-panel { overflow: hidden; }
+.cert-preview-scroll {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #f2f6f4;
+}
+.cert {
+  position: relative;
+  width: 794px;
+  height: 1123px;
+  background: white;
+  transform: scale(0.72);
+  transform-origin: top center;
+  margin-bottom: -315px;
+  font-family: "Montserrat Cert", sans-serif;
+}
+.cert-bg { position: absolute; inset: 0; width: 794px; height: 1123px; user-select: none; }
+
+/* overlays — positions original PDF se measure kiye (300dpi / 3.125) */
+.cert-ovl { position: absolute; left: 60px; right: 60px; text-align: center; }
+
+.cert-name {
+  top: 402px;
+  font-family: "Garamond Cert", Garamond, serif;
+  font-weight: 700;
+  font-size: 42px;         /* 28.69pt */
+  line-height: 1.2;
+  color: #15986A;          /* exact PDF green */
+  white-space: nowrap;
+}
+.cert-course {
+  top: 616px;
+  font-size: 17.3px;       /* 13pt */
+  font-weight: 600;
+  color: #000;
+  white-space: nowrap;
+}
+.cert-provider {
+  top: 681px;
+  font-size: 21.6px;       /* 16.23pt */
+  font-weight: 600;
+  color: #000;
+  white-space: nowrap;
+}
+.cert-dated {
+  top: 750px;
+  font-size: 15.3px;       /* 11.44pt */
+  font-weight: 500;
+  color: #000;
+}
+.cert-no {
+  top: 798px;
+  font-size: 15.3px;       /* 11.44pt */
+  font-weight: 500;
+  color: #000;
+}
+.cert-qr {
+  left: 49px !important;
+  right: auto !important;
+  top: 929px;
+  width: 105px;
+  height: 105px;
+  padding: 3px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cert-qr canvas { width: 100% !important; height: 100% !important; display: block; }
+
+/* ---- history table links ---- */
+.cert-links a {
+  color: var(--green);
+  font-weight: 700;
+  text-decoration: none;
+  margin-right: 12px;
+  font-size: 12px;
+}
+.cert-links a:hover { text-decoration: underline; }

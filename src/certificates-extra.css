@@ -1,0 +1,69 @@
+/* ===== additions: QR/Cloudinary status, badges, duplicate prompt ===== */
+
+.cert-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.cert-badge-ok   { background: var(--green-light, #e6f5ee); color: var(--green-dark, #0f6b4b); border: 1px solid #bfe0cd; }
+.cert-badge-warn { background: #fff7e6; color: #8a5a00; border: 1px solid #ffe0a3; }
+.cert-badge-bad  { background: #fdecec; color: #a02020; border: 1px solid #f2c4c4; }
+
+.cert-status-panel { margin-bottom: 20px; }
+.cert-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+.cert-status-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--muted, #6b8794);
+  margin-bottom: 5px;
+}
+.cert-status-value {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green-dark, #0f6b4b);
+  background: #f4f9f6;
+  border: 1px solid #e2efe8;
+  border-radius: 7px;
+  padding: 8px 10px;
+  word-break: break-all;
+}
+
+.cert-warn {
+  margin-top: 14px;
+  background: #fff7e6;
+  border: 1px solid #ffe0a3;
+  color: #8a5a00;
+  border-radius: 9px;
+  padding: 11px 13px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.cert-warn .cert-hint { color: #8a5a00; opacity: .85; }
+.cert-warn code {
+  background: rgba(255, 255, 255, .7);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 11.5px;
+}
+
+.cert-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.cert-pill-ok  { background: var(--green-light, #e6f5ee); color: var(--green-dark, #0f6b4b); }
+.cert-pill-bad { background: #fdecec; color: #a02020; }
