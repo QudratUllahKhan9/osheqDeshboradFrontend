@@ -13,7 +13,7 @@
  */
 
 export const LIVE_API = (
-  process.env.REACT_APP_API_URL || "https://osheq-cartificates-final.vercel.app"
+  process.env.REACT_APP_API_URL || "https://osheq-cartifica.vercel.app/"
 ).replace(/\/+$/, "");
 
 const isLocalHost = () => {
