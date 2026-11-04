@@ -10,9 +10,9 @@ export default function Reports() {
     (x) => x.status === "Pending"
   ).length;
 
-  const rejected = students.filter(
-    (x) => x.status === "Rejected"
-  ).length;
+  // const rejected = students.filter(
+  //   (x) => x.status === "Rejected"
+  // ).length;
 
   const downloadPDF = () => {
     window.print();
