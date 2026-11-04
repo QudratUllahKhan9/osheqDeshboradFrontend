@@ -58,7 +58,9 @@ export default function Certificates() {
   }, [loadStatus, loadRecords]);
 
   // QR must encode the PUBLIC API domain, never the dashboard domain.
-  const base = (status?.publicBaseUrl || API_BASE || LIVE_API).replace(/\/+$/, "");
+  // QR ka target BACKEND ka URL hai (frontend ka nahi) — /v/<id> backend ka route hai.
+  // status.backendBaseUrl backend khud request host se deta hai.
+  const base = (status?.backendBaseUrl || API_BASE || LIVE_API).replace(/\/+$/, "");
   const previewId = certIdFromNo(certNo) || "PREVIEW";
   const previewQr = `${base}/v/${previewId}`;
 
@@ -87,9 +89,19 @@ export default function Certificates() {
       setCertNo(data.certNo);
       loadRecords();
     } catch (e) {
-      setError(
-        `${e.message} — backend reachable hai? (${apiUrl("/api/health")})`
-      );
+      const msg = e.message || "Generation failed";
+      // Do NOT blame connectivity for every error — a browser launch failure is
+      // a server-side deployment problem, not an unreachable backend.
+      if (/Failed to launch|Cannot find module|ENOENT/i.test(msg)) {
+        setError(
+          `${msg} — backend ka jawab nahi aaya` +
+            `redeploy karke dobara koshish karein.`
+        );
+      } else if (/Failed to fetch|NetworkError|load failed/i.test(msg)) {
+        setError(`${msg} — backend se connect nahi hua (${apiUrl("/api/health")})`);
+      } else {
+        setError(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -122,8 +134,12 @@ export default function Certificates() {
               <code className="cert-status-value">{API_BASE || "localhost proxy :4000"}</code>
             </div>
             <div>
-              <span className="cert-status-label">QR base URL</span>
+              <span className="cert-status-label">QR base (backend)</span>
               <code className="cert-status-value">{base}</code>
+            </div>
+            <div>
+              <span className="cert-status-label">Frontend (CORS)</span>
+              <code className="cert-status-value">{status.frontendBaseUrl || "—"}</code>
             </div>
             <div>
               <span className="cert-status-label">Storage</span>
@@ -280,8 +296,8 @@ export default function Certificates() {
             </div>
           </div>
           <p className="cert-hint" style={{ marginTop: 10 }}>
-            Yehi QR final PDF me print hota hai. Scan karne par <b>{previewQr}</b> khulega —
-            Cloudinary se certificate preview + PDF download.
+            Yehi QR final PDF me print hota hai. Scan karne par <b>{previewQr}</b> khulega
+            (backend ka verify page) — Cloudinary se certificate preview + PDF download.
           </p>
         </div>
       </div>
